@@ -14,6 +14,9 @@ dist-ssr
 
 .env
 
+
+L2R-Sample Size
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
