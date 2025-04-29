@@ -62,7 +62,7 @@ export const login = async (req, res) => {
 
     // Generate JWT token for your app (not Firebase)
     const payload = { userId: user._id, role: user.role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "12h" });
 
     // Send JWT token to the frontend for further authentication
     res.json({ token });

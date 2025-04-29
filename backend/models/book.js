@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const readingPageSchema = new mongoose.Schema({
-  type: { type: String, enum: ['paragraph', 'image', 'background-image', 'sentence'], required: true },
+  type: { type: String, enum: ['paragraph', 'image', 'background-image', 'sentence']},
   text: String,
   audioUrl: String,
   imageUrl: String,
@@ -10,23 +10,24 @@ const readingPageSchema = new mongoose.Schema({
 
 const bookSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  volume: { type: mongoose.Schema.Types.ObjectId, ref: 'Volume', required: true },
-
+  volume: { type: mongoose.Schema.Types.ObjectId, ref: 'Volume'}, // referencing Volume
+  coverImage: String,
   listening: {
-    videoUrl: { type: String }, // BunnyCDN video URL
+    videoUrl: { type: String },
   },
   speaking: {
     sentence: String,
-    imageUrl: String
+    imageUrl: String,
   },
   reading: {
-    pages: [readingPageSchema]
+    pages: [readingPageSchema],
   },
   writing: {
-    pdfDownloadUrl: String, // Admin uploads for download
-    studentUploads: [{ studentId: mongoose.Schema.Types.ObjectId, fileUrl: String }]
+    pdfDownloadUrl: String,
+    studentUploads: [{ studentId: mongoose.Schema.Types.ObjectId, fileUrl: String }],
   }
 }, { timestamps: true });
 
 const Book = mongoose.model('Book', bookSchema);
+
 export default Book;
