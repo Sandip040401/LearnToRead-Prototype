@@ -65,6 +65,13 @@ const ReadingSection = ({ templates }) => {
     setPages(updatedPages);
   };
 
+  const handleDeleteWordButton = (pageIndex, buttonId) => {
+    const updatedPages = [...pages];
+    updatedPages[pageIndex].wordButtons = updatedPages[pageIndex].wordButtons.filter(btn => btn.id !== buttonId);
+    setPages(updatedPages);
+  };
+  
+  
   const handleDragEnd = (index, buttonId, data) => {
     const updatedPages = [...pages];
     updatedPages[index].wordButtons = updatedPages[index].wordButtons.map(button =>
@@ -89,6 +96,7 @@ const ReadingSection = ({ templates }) => {
     }
   };
 
+  
   const renderPage = (page, index) => {
     const isLeftPage = index % 2 === 0;
 
@@ -97,79 +105,37 @@ const ReadingSection = ({ templates }) => {
         <h3 className="font-bold text-lg mb-3 text-indigo-700 text-center">Page {index + 1}</h3>
 
         <div className="flex relative w-full justify-center">
-        {(page.template === 'sentence' || page.template === 'words') && (
-        <>
-          {/* Icon for sentence input */}
-          {page.template === 'sentence' && (
-            <>
-              <button onClick={() => openDialog('sentence')} className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded shadow">
-                <FaRegCommentDots />
-              </button>
+{/* Sidebar with Conditional Tools */}
+{(page.template === 'sentence' || page.template === 'words') && (
+  <div className="absolute top-12 left-2 flex flex-col space-y-2 bg-white p-2 rounded shadow-md z-20">
+    {page.template === 'sentence' && (
+      <>
+        <button onClick={() => openDialog('sentence')} className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded">
+          <FaRegCommentDots />
+        </button>
+        <button onClick={() => openDialog('audio')} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded">
+          <FaUpload />
+        </button>
+      </>
+    )}
 
-              <button onClick={() => openDialog('audio')} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded shadow">
-                <FaUpload />
-              </button>
+    {page.template === 'words' && (
+      <>
+        <button onClick={() => handleAddWordButton(index)} className="bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded">
+          <FaRegCommentDots />
+        </button>
+        <button
+          onClick={() => setDragMode(prev => !prev)}
+          className={`p-2 rounded ${dragMode ? 'bg-blue-600 text-white' : 'bg-gray-300 text-black'}`}
+        >
+          {dragMode ? '🔓' : '🔒'}
+        </button>
 
-              {/* Dialog for inputting sentence */}
-              <Dialog open={isDialogOpen && dialogContent === 'sentence'} onClose={closeDialog}>
-                <Dialog.Overlay className="fixed inset-0 bg-gray-500 opacity-75" />
-                <Dialog.Content className="fixed p-6 bg-white rounded shadow-xl top-2 right-2">
-                  <label className="cursor-pointer">
-                    Input Sentence
-                    <input
-                      type="text"
-                      value={page.sentence || ''}
-                      onChange={(e) => handleSentenceChange(index, e.target.value)}
-                      placeholder="Type here..."
-                      className="ml-2 p-1 rounded text-black border border-gray-300"
-                    />
-                  </label>
-                  <button onClick={closeDialog} className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow">Close</button>
-                </Dialog.Content>
-              </Dialog>
+      </>
+    )}
+  </div>
+)}
 
-              {/* Dialog for uploading audio */}
-              <Dialog open={isDialogOpen && dialogContent === 'audio'} onClose={closeDialog}>
-                <Dialog.Overlay className="fixed inset-0 bg-gray-500 opacity-75" />
-                <Dialog.Content className="fixed p-6 bg-white rounded shadow-xl top-2 right-2">
-                  <label className="cursor-pointer">
-                    Upload Audio
-                    <input
-                      type="file"
-                      accept="audio/*"
-                      onChange={(e) => handleAudioChange(index, e.target.files[0])}
-                      className="hidden"
-                    />
-                  </label>
-                  <button onClick={closeDialog} className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow">Close</button>
-                </Dialog.Content>
-              </Dialog>
-
-              {page.audio && (
-                <audio controls className="mt-1 w-full">
-                  <source src={URL.createObjectURL(page.audio)} type="audio/mpeg" />
-                </audio>
-              )}
-            </>
-          )}
-
-          {/* Icon for words generation */}
-          {page.template === 'words' && (
-            <button onClick={() => handleAddWordButton(index)} className="bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded shadow">
-              <FaRegCommentDots />
-            </button>
-          )}
-          {page.template === 'words' && (
-            <button
-            onClick={() => setDragMode(prev => !prev)}
-            className={`ml-2 px-4 py-2 rounded ${dragMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black'}`}
-          >
-            {dragMode ? 'Disable Drag' : 'Enable Drag'}
-          </button>
-          
-          )}
-        </>
-      )}
 
 
           <div className="relative">
@@ -252,7 +218,10 @@ const ReadingSection = ({ templates }) => {
                           </div>
 
                           {/* Audio Play + Double-click to Upload */}
-                          <div onMouseDown={(e) => e.stopPropagation()}>
+                          <div
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="group relative inline-block"
+                          >
                             <button
                               onClick={() => {
                                 if (!dragMode && btn.audio) {
@@ -266,7 +235,6 @@ const ReadingSection = ({ templates }) => {
                               className={`${
                                 btn.audio ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-800 hover:bg-gray-900'
                               } text-white p-2 rounded-full shadow mt-1`}
-                              
                             >
                               <FaVolumeUp
                                 className={`transform ${
@@ -274,7 +242,17 @@ const ReadingSection = ({ templates }) => {
                                 }`}
                               />
                             </button>
+
+                            {/* ❌ Delete Button shown on hover */}
+                            <button
+                              onClick={() => handleDeleteWordButton(index, btn.id)}
+                              className="absolute -top-2 -right-2 hidden group-hover:flex items-center justify-center bg-red-600 hover:bg-red-700 text-white text-xs p-1 rounded-full shadow"
+                              title="Delete"
+                            >
+                              ❌
+                            </button>
                           </div>
+
                         </div>
                       );
                     };
