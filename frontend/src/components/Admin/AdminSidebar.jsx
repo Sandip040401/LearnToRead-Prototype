@@ -1,137 +1,158 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaChevronDown, FaChevronUp, FaBars, FaLayerGroup, FaBook, FaRegListAlt } from 'react-icons/fa';
+import {
+  FaChevronDown,
+  FaChevronUp,
+  FaBars,
+  FaLayerGroup,
+  FaBook,
+  FaRegListAlt,
+  FaSearch,
+  FaPlus,
+  FaEye
+} from 'react-icons/fa';
 
 const AdminSidebar = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState({
-    level: false,
-    volume: false,
-    book: false,
-  });
-
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
 
-  const toggleDropdown = (section) => {
-    setDropdownOpen((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+  const isExactMatch = (path) => location.pathname === path;
+  const isParentActive = (parentPath) => location.pathname.startsWith(parentPath + '/');
+
+  const handleDropdownToggle = (key) => {
+    setActiveDropdown((prev) => (prev === key ? null : key));
   };
 
-  // For active highlighting
-  const isActive = (path) => location.pathname === path;
+  const navItems = [
+    {
+      key: 'level',
+      label: 'Manage Levels',
+      icon: <FaLayerGroup />,
+      basePath: '/admin/levels',
+      links: [
+        { path: '/admin/levels', label: 'Add Levels', icon: <FaPlus /> },
+        { path: '/admin/levels/view', label: 'View Levels', icon: <FaEye /> },
+      ],
+    },
+    {
+      key: 'volume',
+      label: 'Manage Volumes',
+      icon: <FaRegListAlt />,
+      basePath: '/admin/volumes',
+      links: [
+        { path: '/admin/volumes', label: 'Add Volumes', icon: <FaPlus /> },
+        { path: '/admin/volumes/view', label: 'View Volumes', icon: <FaEye /> },
+      ],
+    },
+    {
+      key: 'book',
+      label: 'Manage Books',
+      icon: <FaBook />,
+      basePath: '/admin/books',
+      links: [
+        { path: '/admin/books', label: 'Add Books', icon: <FaPlus /> },
+        { path: '/admin/books/view', label: 'View Books', icon: <FaEye /> },
+      ],
+    },
+  ];
 
   return (
-    <div className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-gray-800 text-white transition-all duration-300 min-h-screen`}>
-      {/* Top section */}
+    <div
+      className={`${
+        sidebarOpen ? 'w-64' : 'w-16'
+      } bg-gradient-to-b from-indigo-400 to-purple-500 text-white transition-all duration-300 min-h-screen shadow-lg flex flex-col p-3 relative`}
+    >
+      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        <Link to="/admin"><h1 className="text-lg font-bold">{sidebarOpen ? 'Admin' : 'A'}</h1></Link>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="focus:outline-none">
+        <Link to="/admin">
+          <h1 className="text-xl font-bold tracking-wide text-black">
+            {sidebarOpen ? 'Admin Panel' : 'A'}
+          </h1>
+        </Link>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="text-black hover:text-yellow-300 transition-colors"
+        >
           <FaBars />
         </button>
       </div>
 
+      {/* Search */}
+      <div className={`mt-4 ${sidebarOpen ? 'block' : 'hidden'}`}>
+        <div className="flex items-center bg-white rounded-lg shadow-md">
+          <FaSearch className="text-gray-600 ml-2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            className="w-full px-3 py-2 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
       {/* Navigation */}
-      <nav className="p-4 space-y-2">
-        {/* Manage Levels */}
-        <div>
-          <button
-            onClick={() => toggleDropdown('level')}
-            className="flex items-center justify-between w-full text-left p-2 rounded hover:bg-gray-700"
-          >
-            <div className="flex items-center gap-2">
-              <FaLayerGroup /> {sidebarOpen && 'Manage Levels'}
-            </div>
-            {sidebarOpen && (dropdownOpen.level ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)}
-          </button>
-          {dropdownOpen.level && (
-            <>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/levels"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/levels') ? 'bg-gray-700' : ''}`}
-              >
-                Add Levels
-              </Link>
-            </div>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/levels/view"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/levels/view') ? 'bg-gray-700' : ''}`}
-              >
-                View Levels
-              </Link>
-            </div>
-            </>
-          )}
-        </div>
+      <nav className="mt-6 space-y-4">
+        {navItems.map(({ key, label, icon, links, basePath }) => {
+          const parentIsActive = isParentActive(basePath) || links.some((l) => isExactMatch(l.path));
+          const isDropdownOpen = activeDropdown === key;
 
-        {/* Manage Volumes */}
-        <div>
-          <button
-            onClick={() => toggleDropdown('volume')}
-            className="flex items-center justify-between w-full text-left p-2 rounded hover:bg-gray-700"
-          >
-            <div className="flex items-center gap-2">
-              <FaRegListAlt /> {sidebarOpen && 'Manage Volumes'}
-            </div>
-            {sidebarOpen && (dropdownOpen.volume ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)}
-          </button>
-          {dropdownOpen.volume && (
-            <>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/volumes"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/volumes') ? 'bg-gray-700' : ''}`}
+          return (
+            <div key={key} className="relative group">
+              <button
+                onClick={() => handleDropdownToggle(key)}
+                className={`flex items-center justify-between w-full text-left px-4 py-3 rounded-md transition-all ${
+                  parentIsActive ? 'bg-indigo-600' : 'hover:bg-indigo-600'
+                }`}
               >
-                Add Volumes
-              </Link>
-            </div>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/volumes/view"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/volumes/view') ? 'bg-gray-700' : ''}`}
-              >
-                View Volumes
-              </Link>
-            </div>
-            </>
-          )}
-        </div>
+                <div className="flex items-center gap-3">
+                  {icon}
+                  {sidebarOpen && <span className="font-medium">{label}</span>}
+                </div>
+                {sidebarOpen &&
+                  (isDropdownOpen ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)}
+              </button>
 
-        {/* Manage Books */}
-        <div>
-          <button
-            onClick={() => toggleDropdown('book')}
-            className="flex items-center justify-between w-full text-left p-2 rounded hover:bg-gray-700"
-          >
-            <div className="flex items-center gap-2">
-              <FaBook /> {sidebarOpen && 'Manage Books'}
+              {/* Dropdown for expanded sidebar */}
+              {sidebarOpen && isDropdownOpen && (
+                <div className="ml-6 mt-2 space-y-2">
+                  {links.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={`block px-4 py-2 rounded-md text-sm flex items-center gap-3 transition-all hover:bg-indigo-600 ${
+                        isExactMatch(link.path) ? 'bg-indigo-600 text-white' : ''
+                      }`}
+                    >
+                      {link.icon}
+                      <span>{link.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Dropdown box for collapsed sidebar */}
+              {!sidebarOpen && isDropdownOpen && (
+                <div className="absolute left-full top-0 ml-2 w-48 bg-white text-gray-800 rounded-md shadow-lg p-2 z-50 space-y-2">
+                  {links.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={`block px-3 py-2 rounded-md text-sm flex items-center gap-2 hover:bg-indigo-500 hover:text-white transition-all ${
+                        isExactMatch(link.path) ? 'bg-indigo-500 text-white' : ''
+                      }`}
+                    >
+                      {link.icon}
+                      <span>{link.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
-            {sidebarOpen && (dropdownOpen.book ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)}
-          </button>
-          {dropdownOpen.book && (
-            <>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/books"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/books') ? 'bg-gray-700' : ''}`}
-              >
-                Add Books
-              </Link>
-            </div>
-            <div className="ml-6 mt-2 space-y-2">
-              <Link
-                to="/admin/books/view"
-                className={`block p-2 rounded hover:bg-gray-700 ${isActive('/admin/books/view') ? 'bg-gray-700' : ''}`}
-              >
-                View Books
-              </Link>
-            </div>
-            </>
-          )}
-        </div>
+          );
+        })}
       </nav>
     </div>
   );

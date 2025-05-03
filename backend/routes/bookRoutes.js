@@ -9,7 +9,8 @@ import {
   updateCoverImage,
   updateListeningVideo,
   updateSpeakingSection,
-  updateWritingPdf
+  updateWritingPdf,
+  addReadingPages
 } from '../controllers/bookController.js';
 import { dynamicUploadMiddleware } from '../middleware/uploadMiddleware.js';
 
@@ -25,7 +26,7 @@ router.get('/', getAllBooks);
 router.get('/:id', getBookById);
 
 // Update Book
-router.put('/:id', updateBook);
+// router.put('/:id', updateBook);
 
 // Move Book to another Volume
 router.put('/:id/move', moveBookToAnotherVolume);
@@ -45,5 +46,8 @@ router.put('/:id/speaking', dynamicUploadMiddleware, updateSpeakingSection);
 
 // Update Writing PDF
 router.put('/:id/writing-pdf', dynamicUploadMiddleware, updateWritingPdf);
+
+// update reading pages
+router.put('/reading-pages', dynamicUploadMiddleware, addReadingPages);
 
 export default router;

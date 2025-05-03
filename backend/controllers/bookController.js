@@ -147,3 +147,187 @@ export const updateWritingPdf = async (req, res) => {
     res.status(500).json({ message: 'Failed to update writing PDF', error: error.message });
   }
 };
+
+
+
+// export const addReadingPages = async (req, res) => {
+//   try {
+//     const { bookId, pages } = req.body;
+    
+//     if (!bookId || !pages) {
+//       return res.status(400).json({ message: 'bookId and pages are required.' });
+//     }
+
+//     const parsedPages = JSON.parse(pages); // parse incoming JSON string
+//     const uploadedFilesMap = {};
+    
+//     // Map uploaded files to their fieldname
+//     for (const file of req.uploadedFiles) {
+//       uploadedFilesMap[file.fieldname] = file.url;
+//     }
+
+//     // Construct reading.pages using parsed data + uploaded file URLs
+//     const readingPages = parsedPages.map((page) => {
+//       const imageUrl = uploadedFilesMap[page.imageKey] || null;
+//       const audioUrl = page.audioKey ? uploadedFilesMap[page.audioKey] : null;
+
+//       const wordButtons = page.wordButtons.map((btn) => {
+//         return uploadedFilesMap[btn.audioKey] || null;
+//       });
+
+//       return {
+//         template: page.template,
+//         sentence: page.sentence || '',
+//         audio: {
+//           url: audioUrl
+//         },
+//         image: {
+//           url: imageUrl,
+//           alt: ''
+//         },
+//         wordButtons
+//       };
+//     });
+
+//     const book = await Book.findById(bookId);
+//     if (!book) return res.status(404).json({ message: 'Book not found.' });
+    
+//     book.reading.pages = readingPages;
+//     await book.save();
+
+//     return res.status(200).json({ message: 'Reading pages updated successfully.' });
+//   } catch (error) {
+//     console.error('Error adding reading pages:', error);
+//     return res.status(500).json({ message: 'Server error.', error: error.message });
+//   }
+// };
+
+// export const addReadingPages = async (req, res) => {
+//   try {
+//     const { bookId, page, pageIndex } = req.body;
+
+//     if (!bookId || pageIndex === undefined || !page) {
+//       return res.status(400).json({ message: 'bookId, pageIndex, and page are required.' });
+//     }
+
+//     const parsedPage = typeof page === 'string' ? JSON.parse(page) : page;
+
+//     const uploadedFilesMap = {};
+//     for (const file of req.uploadedFiles || []) {
+//       uploadedFilesMap[file.fieldname] = file.url;
+//     }
+
+//     const imageUrl = uploadedFilesMap[parsedPage.imageKey] || null;
+//     const audioUrl = parsedPage.audioKey ? uploadedFilesMap[parsedPage.audioKey] : null;
+
+//     const wordButtons = (parsedPage.wordButtons || []).map((btn, index) => ({
+//       id: btn.id ?? index + 1,
+//       x: btn.x,
+//       y: btn.y,
+//       audio: {
+//         url: uploadedFilesMap[btn.audioKey] || null
+//       }
+//     }));
+
+//     const newPage = {
+//       template: parsedPage.template,
+//       sentence: parsedPage.sentence || '',
+//       sentenceX: parsedPage.sentenceX || 0,
+//       sentenceY: parsedPage.sentenceY || 0,
+//       audio: { url: audioUrl },
+//       image: {
+//         url: imageUrl,
+//         alt: parsedPage.imageAlt || ''
+//       },
+//       wordButtons
+//     };
+
+//     const book = await Book.findById(bookId);
+//     if (!book) return res.status(404).json({ message: 'Book not found.' });
+
+//     if (!book.reading.pages) {
+//       book.reading.pages = [];
+//     }
+
+//     book.reading.pages[pageIndex] = newPage;
+
+//     await book.save();
+
+//     return res.status(200).json({ message: `Page ${pageIndex + 1} saved successfully.` });
+//   } catch (error) {
+//     console.error('Error updating single reading page:', error);
+//     return res.status(500).json({ message: 'Server error.', error: error.message });
+//   }
+// };
+
+
+
+export const addReadingPages = async (req, res) => {
+  try {
+    const { bookId, page, pageIndex } = req.body;
+
+    if (!bookId || pageIndex === undefined || !page) {
+      return res.status(400).json({ message: 'bookId, pageIndex, and page are required.' });
+    }
+
+    const parsedPage = typeof page === 'string' ? JSON.parse(page) : page;
+
+    const uploadedFilesMap = {};
+    for (const file of req.uploadedFiles || []) {
+      uploadedFilesMap[file.fieldname] = file.url;
+    }
+
+    const imageUrl = uploadedFilesMap[parsedPage.imageKey];
+    const audioUrl = parsedPage.audioKey ? uploadedFilesMap[parsedPage.audioKey] : undefined;
+
+    const book = await Book.findById(bookId);
+    if (!book) return res.status(404).json({ message: 'Book not found.' });
+
+    if (!book.reading.pages) {
+      book.reading.pages = [];
+    }
+
+    const existingPage = book.reading.pages[pageIndex] || {};
+    const existingButtons = existingPage.wordButtons || [];
+
+    const wordButtons = (parsedPage.wordButtons || []).map((btn, index) => {
+      const existingBtn = existingButtons.find((b) => b.id === btn.id);
+      const uploadedUrl = uploadedFilesMap[btn.audioKey];
+
+      return {
+        id: btn.id ?? index + 1,
+        x: btn.x,
+        y: btn.y,
+        audio: {
+          url: uploadedUrl || existingBtn?.audio?.url || undefined
+        }
+      };
+    });
+
+    const newPage = {
+      template: parsedPage.template,
+      sentence: parsedPage.sentence || '',
+      sentenceX: parsedPage.sentenceX || 0,
+      sentenceY: parsedPage.sentenceY || 0,
+      audio: audioUrl !== undefined
+        ? { url: audioUrl }
+        : existingPage.audio || { url: undefined },
+      image: imageUrl
+        ? { url: imageUrl, alt: parsedPage.imageAlt || '' }
+        : existingPage.image || { url: undefined, alt: '' },
+      wordButtons
+    };
+
+    book.reading.pages[pageIndex] = newPage;
+    await book.save();
+
+    return res.status(200).json({ message: `Page  saved successfully.` });
+  } catch (error) {
+    if (!res.headersSent) {
+      return res.status(500).json({ message: 'Server error.', error: error.message });
+    }
+    console.error('Error updating single reading page:', error);
+  }
+}
+
+

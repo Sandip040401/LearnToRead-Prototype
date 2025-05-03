@@ -1,0 +1,369 @@
+import React, { useState,useRef  } from 'react';
+import { DndContext, useDraggable } from '@dnd-kit/core';
+import { Dialog } from "@headlessui/react"; // Import Headless UI dialog for modals
+import { FaVolumeUp, FaRegCommentDots, FaUpload } from 'react-icons/fa';
+
+const ReadingSection = ({ templates }) => {
+  const [pages, setPages] = useState([
+    { template: '', image: null, sentence: '', audio: null, wordButtons: [] },
+    { template: '', image: null, sentence: '', audio: null, wordButtons: [] },
+  ]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [dialogContent, setDialogContent] = useState(null);
+  const [dragMode, setDragMode] = useState(false);
+  const [flipAudioButton, setFlipAudioButton] = useState(false);
+
+  const openDialog = (content) => {
+    setDialogContent(content);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => setDialogOpen(false);
+  const handleTemplateChange = (index, value) => {
+    const updatedPages = [...pages];
+    updatedPages[index] = {
+      template: value,
+      image: updatedPages[index].image,
+      sentence: '',
+      audio: null,
+      wordButtons: [],
+    };
+    setPages(updatedPages);
+  };
+
+  const handleImageChange = (index, file) => {
+    const updatedPages = [...pages];
+    updatedPages[index].image = file;
+    setPages(updatedPages);
+  };
+
+  const handleSentenceChange = (index, sentence) => {
+    const updatedPages = [...pages];
+    updatedPages[index].sentence = sentence;
+    setPages(updatedPages);
+  };
+
+  const handleAudioChange = (index, file) => {
+    const updatedPages = [...pages];
+    updatedPages[index].audio = file;
+    setPages(updatedPages);
+  };
+
+  const handleWordAudioChange = (index, buttonId, file) => {
+    const updatedPages = [...pages];
+    const updatedButtons = updatedPages[index].wordButtons.map(button =>
+      button.id === buttonId ? { ...button, audio: file } : button
+    );
+    updatedPages[index].wordButtons = updatedButtons;
+    setPages(updatedPages);
+  };
+
+  const handleAddWordButton = (index) => {
+    const updatedPages = [...pages];
+    const newButton = { id: Date.now(), x: 50, y: 50, audio: null };
+    updatedPages[index].wordButtons.push(newButton);
+    setPages(updatedPages);
+  };
+
+  const handleDeleteWordButton = (pageIndex, buttonId) => {
+    const updatedPages = [...pages];
+    updatedPages[pageIndex].wordButtons = updatedPages[pageIndex].wordButtons.filter(btn => btn.id !== buttonId);
+    setPages(updatedPages);
+  };
+  
+  
+  const handleDragEnd = (index, buttonId, data) => {
+    const updatedPages = [...pages];
+    updatedPages[index].wordButtons = updatedPages[index].wordButtons.map(button =>
+      button.id === buttonId ? { ...button, x: data.x, y: data.y } : button
+    );
+    setPages(updatedPages);
+  };
+
+  const handleAddPage = () => {
+    setPages([...pages, { template: '', image: null, sentence: '', audio: null, wordButtons: [] }]);
+  };
+
+  const handleNext = () => {
+    if (currentPageIndex + 2 < pages.length) {
+      setCurrentPageIndex(currentPageIndex + 2);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPageIndex >= 2) {
+      setCurrentPageIndex(currentPageIndex - 2);
+    }
+  };
+
+  
+  const renderPage = (page, index) => {
+    const isLeftPage = index % 2 === 0;
+
+    return (
+      <div key={index} className="relative flex flex-col items-center border rounded-lg bg-white shadow-sm overflow-hidden p-4">
+        <h3 className="font-bold text-lg mb-3 text-indigo-700 text-center">Page {index + 1}</h3>
+
+        <div className="flex relative w-full justify-center">
+{/* Sidebar with Conditional Tools */}
+{(page.template === 'sentence' || page.template === 'words') && (
+  <div className="absolute top-12 left-2 flex flex-col space-y-2 bg-white p-2 rounded shadow-md z-20">
+    {page.template === 'sentence' && (
+      <>
+        <button onClick={() => openDialog('sentence')} className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded">
+          <FaRegCommentDots />
+        </button>
+        <button onClick={() => openDialog('audio')} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded">
+          <FaUpload />
+        </button>
+      </>
+    )}
+
+    {page.template === 'words' && (
+      <>
+        <button onClick={() => handleAddWordButton(index)} className="bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded">
+          <FaRegCommentDots />
+        </button>
+        <button
+          onClick={() => setDragMode(prev => !prev)}
+          className={`p-2 rounded ${dragMode ? 'bg-blue-600 text-white' : 'bg-gray-300 text-black'}`}
+        >
+          {dragMode ? '🔓' : '🔒'}
+        </button>
+        <button
+          onClick={() => setFlipAudioButton(prev => !prev)}
+          className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
+          title="Flip Audio Button"
+        >
+          🔄
+        </button>
+
+      </>
+    )}
+  </div>
+)}
+
+
+
+          <div className="relative">
+            <div className="mb-4 px-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Template</label>
+              <select
+                value={page.template}
+                onChange={(e) => handleTemplateChange(index, e.target.value)}
+                className="border border-gray-300 rounded w-full p-2 focus:ring focus:ring-indigo-200"
+              >
+                <option value="">Select Template</option>
+                <option value="background">Background Only</option>
+                <option value="sentence">Sentence</option>
+                <option value="words">Words</option>
+              </select>
+            </div>
+
+            <div className="mb-4 px-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Upload Background Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageChange(index, e.target.files[0])}
+                className="w-full"
+              />
+            </div>
+
+            <div className="relative mx-auto" style={{ width: 'fit-content' }}>
+              {page.image ? (
+                <img
+                  src={URL.createObjectURL(page.image)}
+                  alt="Background"
+                  className="block max-w-full max-h-[400px] rounded"
+                />
+              ) : (
+                <div className="w-[300px] h-[400px] bg-gray-100 flex items-center justify-center text-gray-400 text-sm italic">
+                  No image selected
+                </div>
+              )}
+
+
+              {page.template === 'words' && (
+                <DndContext
+                  onDragEnd={({ active, delta }) => {
+                    handleDragEnd(index, parseInt(active.id), {
+                      x: delta.x + (page.wordButtons.find(b => b.id === parseInt(active.id))?.x || 0),
+                      y: delta.y + (page.wordButtons.find(b => b.id === parseInt(active.id))?.y || 0),
+                    });
+                  }}
+                >
+                  {page.wordButtons?.map((btn) => {
+                    const DraggableBtn = () => {
+                      const { attributes, listeners, setNodeRef, transform } = useDraggable({
+                        id: btn.id.toString(),
+                      });
+
+                      const inputRef = useRef(null);
+
+                      const style = {
+                        transform: `translate(${transform?.x || 0}px, ${transform?.y || 0}px)`,
+                        position: 'absolute',
+                        left: btn.x,
+                        top: btn.y,
+                        zIndex: 10,
+                      };
+
+                      return (
+                        <div ref={setNodeRef} {...(dragMode ? listeners : {})} {...attributes} style={style}>
+
+
+                          {/* Hidden File Input */}
+                          <div onMouseDown={(e) => e.stopPropagation()}>
+                            <input
+                              ref={inputRef}
+                              type="file"
+                              accept="audio/*"
+                              onChange={(e) => handleWordAudioChange(index, btn.id, e.target.files[0])}
+                              className="mb-1 w-20 text-[10px] hidden"
+                            />
+                          </div>
+
+                          {/* Audio Play + Double-click to Upload */}
+                          <div
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="group relative inline-block"
+                          >
+                            <button
+                              onClick={() => {
+                                if (!dragMode && btn.audio) {
+                                  const audio = new Audio(URL.createObjectURL(btn.audio));
+                                  audio.play();
+                                }
+                              }}
+                              onDoubleClick={() => {
+                                if (inputRef.current) inputRef.current.click();
+                              }}
+                              className={`${
+                                btn.audio ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-800 hover:bg-gray-900'
+                              } text-white p-2 rounded-full shadow mt-1`}
+                            >
+                              <FaVolumeUp
+                                  className={`transform transition-transform duration-300 ${
+                                    flipAudioButton ? 'rotate-180' : ''
+                                  } ${btn.x < window.innerWidth / 2 ? 'scale-x-[-1]' : 'scale-x-100'}`}
+                                />
+
+                            </button>
+
+                            {/* ❌ Delete Button shown on hover */}
+                            <button
+                              onClick={() => handleDeleteWordButton(index, btn.id)}
+                              className="absolute -top-2 -right-2 hidden group-hover:flex items-center justify-center bg-red-600 hover:bg-red-700 text-white text-xs p-1 rounded-full shadow"
+                              title="Delete"
+                            >
+                              ❌
+                            </button>
+                          </div>
+
+                        </div>
+                      );
+                    };
+                    return <DraggableBtn key={btn.id} />;
+                  })}
+                </DndContext>
+              )}
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const leftPage = pages[currentPageIndex];
+  const rightPage = pages[currentPageIndex + 1];
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-md max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={handlePrevious}
+          disabled={currentPageIndex === 0}
+          className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <button
+          onClick={handleAddPage}
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+        >
+          Add Page
+        </button>
+        <button
+          onClick={handleNext}
+          disabled={currentPageIndex + 2 >= pages.length}
+          className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {leftPage && renderPage(leftPage, currentPageIndex)}
+        {rightPage && renderPage(rightPage, currentPageIndex + 1)}
+      </div>
+
+{/* Pagination Navigation */}
+<div className="mt-4 flex flex-col items-center space-y-2">
+  <div className="flex items-center space-x-2">
+    <button
+      onClick={() => setCurrentPageIndex(0)}
+      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+      disabled={currentPageIndex === 0}
+    >
+      First
+    </button>
+    <button
+      onClick={handlePrevious}
+      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+      disabled={currentPageIndex === 0}
+    >
+      Prev
+    </button>
+    <div className="overflow-x-auto max-w-xs">
+      <div className="flex space-x-2">
+        {pages.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentPageIndex(i - (i % 2))} // Ensure even index for left-right pairs
+            className={`px-3 py-1 rounded ${
+              currentPageIndex === i || currentPageIndex === i - 1
+                ? 'bg-indigo-500 text-white'
+                : 'bg-gray-200'
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+    <button
+      onClick={handleNext}
+      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+      disabled={currentPageIndex + 2 >= pages.length}
+    >
+      Next
+    </button>
+    <button
+      onClick={() => setCurrentPageIndex(pages.length - (pages.length % 2 === 0 ? 2 : 1))}
+      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+    >
+      Last
+    </button>
+  </div>
+</div>
+
+
+    </div>
+  );
+};
+
+export default ReadingSection;

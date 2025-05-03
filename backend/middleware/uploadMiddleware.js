@@ -84,42 +84,85 @@ const s3 = new S3Client({
   },
 });
 
-export const dynamicUploadMiddleware = [
-  upload.single("file"),
+// export const dynamicUploadMiddleware = [
+//   upload.single("file"),
   
-  async (req, res, next) => {
-    try {
+//   async (req, res, next) => {
+//     try {
 
-      if (!req.file) {
-        console.log("❌ No file uploaded.");
-        return res.status(400).json({ error: "No file uploaded." });
+//       if (!req.file) {
+//         console.log("❌ No file uploaded.");
+//         return res.status(400).json({ error: "No file uploaded." });
+//       }
+
+//       const file = req.file;
+//       const timestamp = Date.now();
+//       const fileName = `${timestamp}-${file.originalname}`;
+
+//       const command = new PutObjectCommand({
+//         Bucket: process.env.R2_BUCKET_NAME,
+//         Key: fileName,
+//         Body: file.buffer,
+//         ContentType: file.mimetype,
+//         ACL: "public-read",
+//       });
+
+//       await s3.send(command);
+
+//       const fileUrl = `${process.env.R2_DEV}/${fileName}`;
+
+//       console.log("✅ Uploaded File URL:", fileUrl);
+
+//       req.fileUrl = fileUrl;
+//       req.fileType = file.mimetype;
+
+//       next(); // pass to next middleware/handler
+//     } catch (error) {
+//       console.error("❌ Error uploading file:", error);
+//       return res.status(500).json({ error: "Error uploading file.", details: error.message });
+//     }
+//   },
+// ];
+
+export const dynamicUploadMiddleware = async (req, res, next) => {
+  upload.any()(req, res, async (err) => {
+    if (err) {
+      console.error("❌ Multer error:", err);
+      return res.status(400).json({ error: "File upload error", details: err.message });
+    }
+
+    try {
+      if (!req.files || req.files.length === 0) {
+        // No files uploaded; skip uploading to CDN
+        req.uploadedFiles = [];
+        return next();
       }
 
-      const file = req.file;
-      const timestamp = Date.now();
-      const fileName = `${timestamp}-${file.originalname}`;
+      const uploadedFiles = [];
 
-      const command = new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: fileName,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: "public-read",
-      });
+      for (const file of req.files) {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}-${file.originalname}`;
 
-      await s3.send(command);
+        const command = new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          ACL: "public-read",
+        });
 
-      const fileUrl = `${process.env.R2_DEV}/${fileName}`;
+        await s3.send(command);
 
-      console.log("✅ Uploaded File URL:", fileUrl);
+        const fileUrl = `${process.env.R2_DEV}/${fileName}`;
+        uploadedFiles.push({ fieldname: file.fieldname, url: fileUrl });
+      }
 
-      req.fileUrl = fileUrl;
-      req.fileType = file.mimetype;
-
-      next(); // pass to next middleware/handler
+      req.uploadedFiles = uploadedFiles;
+      return next();
     } catch (error) {
       console.error("❌ Error uploading file:", error);
       return res.status(500).json({ error: "Error uploading file.", details: error.message });
     }
-  },
-];
+  });
+};

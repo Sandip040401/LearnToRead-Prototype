@@ -1,12 +1,28 @@
 import mongoose from 'mongoose';
 
 const readingPageSchema = new mongoose.Schema({
-  type: { type: String, enum: ['paragraph', 'image', 'background-image', 'sentence']},
-  text: String,
-  audioUrl: String,
-  imageUrl: String,
-  backgroundUrl: String,
+  template: { type: String, enum: ['words', 'sentence', 'background'] },
+  sentence: { type: String },
+  sentenceX: { type: Number },
+  sentenceY: { type: Number },
+  audio: {
+    url: { type: String }
+  },
+  image: {
+    url: { type: String },
+    alt: { type: String }
+  },
+  wordButtons: [{
+    id: { type: Number },
+    x: { type: Number },
+    y: { type: Number },
+    audio: {
+      url: { type: String }
+    }
+  }],
 }, { _id: false });
+
+
 
 const bookSchema = new mongoose.Schema({
   title: { type: String, required: true },

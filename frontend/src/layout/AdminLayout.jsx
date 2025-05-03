@@ -9,7 +9,7 @@ const AdminLayout = () => {
       <AdminSidebar />
 
       {/* Main Content */}
-      <div className="flex-1 bg-gray-100 p-6">
+      <div className="flex-1 bg-gray-100">
         {/* Here the dynamic page content will come */}
         <Outlet />
       </div>

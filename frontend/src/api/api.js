@@ -173,3 +173,11 @@ export const getWriting = (studentId) => axiosInstance.get(`/writing/${studentId
 
 
 export const getTemplates = () => axiosInstance.get("/templates");
+
+
+
+export const updateReading = (formData) => axiosInstances.put(`/books/reading-pages`, formData, {
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+});
